@@ -2,7 +2,6 @@ package queryfx
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/uber/athenadriver/athenareader/configfx"
 	drv "github.com/uber/athenadriver/go"
 	"go.uber.org/fx"
@@ -16,7 +15,7 @@ var Module = fx.Provide(new)
 type Params struct {
 	fx.In
 
-	query     string
+	Query     string
 	DrvConfig *drv.Config
 	OConfig   configfx.ReaderOutputConfig
 }
@@ -24,30 +23,32 @@ type Params struct {
 // Result defines output
 type Result struct {
 	fx.Out
+
+	QAD QueryAndDB
 }
 
-func new(p Params) {
+type QueryAndDB struct {
+	DB    *sql.DB
+	Query string
+}
+
+func new(p Params) (Result, error) {
 	// 2. Open Connection.
 	dsn := p.DrvConfig.Stringify()
 	db, _ := sql.Open(drv.DriverName, dsn)
 	// 3. Query and print results
-	var sqlString = p.query
-	if _, err := os.Stat(p.query); err == nil {
-		b, err := ioutil.ReadFile(p.query)
-		if err != nil {
-			fmt.Print(err)
+	var sqlString = p.Query
+	if _, err := os.Stat(p.Query); err == nil {
+		b, err := ioutil.ReadFile(p.Query)
+		if err == nil {
+			sqlString = string(b) // convert content to a 'string'
 		}
-		sqlString = string(b) // convert content to a 'string'
 	}
-	rows, err := db.Query(sqlString)
-	if err != nil {
-		println(err.Error())
-		return
+	qad := QueryAndDB{
+		DB:    db,
+		Query: sqlString,
 	}
-	defer rows.Close()
-	if p.OConfig.Rowonly {
-		drv.PrettyPrintSQLRows(rows, p.OConfig.Style)
-		return
-	}
-	drv.PrettyPrintSQLColsRows(rows, p.OConfig.Style)
+	return Result{
+		QAD: qad,
+	}, nil
 }

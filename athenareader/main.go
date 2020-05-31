@@ -27,11 +27,13 @@ import (
 	"github.com/uber/athenadriver/athenareader/configfx"
 	"github.com/uber/athenadriver/athenareader/queryfx"
 	secret "github.com/uber/athenadriver/examples/constants"
+	drv "github.com/uber/athenadriver/go"
 	"go.uber.org/fx"
 	"os"
 )
 
 var commandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
 var bucket = flag.String("b", secret.OutputBucket, "Athena resultset output bucket")
 var database = flag.String("d", "default", "The database you want to query")
 var query = flag.String("q", "select 1", "The SQL query string or a file containing SQL string")
@@ -43,8 +45,7 @@ func printVersion() {
 	println("Current build version: v1.1.6")
 }
 
-// main will query Athena and print all columns and rows information in csv format
-func main() {
+func processFlag(){
 	flag.Usage = func() {
 		preBody := "NAME\n\tathenareader - read athena data from command line\n\n"
 		desc := "\nEXAMPLES\n\n" +
@@ -76,6 +77,11 @@ func main() {
 	}
 
 	flag.Parse()
+}
+
+// main will query Athena and print all columns and rows information in csv format
+func main() {
+	processFlag()
 	switch {
 	case *versionFlag:
 		printVersion()
@@ -84,7 +90,9 @@ func main() {
 	// 1. Set AWS Credential in Driver Config.
 	os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
 	println(bucket, database, query, rowOnly, moneyWise, versionFlag, admin)
-	app := fx.New(opts())
+	app := fx.New(
+		opts(),
+		fx.Options(fx.NopLogger))
 	ctx := context.Background()
 	app.Start(ctx)
 	defer app.Stop(ctx)
@@ -95,5 +103,20 @@ func opts() fx.Option {
 		fx.Provide(func() string { return *query }),
 		configfx.Module,
 		queryfx.Module,
+		fx.Invoke(queryAthena),
 	)
+}
+
+func queryAthena(qad queryfx.QueryAndDB, OConfig configfx.ReaderOutputConfig) {
+	rows, err := qad.DB.Query(qad.Query)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	defer rows.Close()
+	if OConfig.Rowonly {
+		drv.PrettyPrintSQLRows(rows, OConfig.Style)
+	} else {
+		drv.PrettyPrintSQLColsRows(rows, OConfig.Style)
+	}
 }

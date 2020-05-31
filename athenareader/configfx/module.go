@@ -5,6 +5,8 @@ import (
 	drv "github.com/uber/athenadriver/go"
 	"go.uber.org/config"
 	"go.uber.org/fx"
+	"log"
+	"os"
 )
 
 var Module = fx.Provide(new)
@@ -40,7 +42,12 @@ type Result struct {
 func new(p Params) (Result, error) {
 	var readerOutputConfig ReaderOutputConfig
 	var readerInputConfig ReaderInputConfig
-	provider, err := config.NewYAML(config.File("athenareader/config.yaml"))
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	println(dir)
+	provider, err := config.NewYAML(config.File("config.yaml"))
 	if err != nil {
 		return Result{}, err
 	}
