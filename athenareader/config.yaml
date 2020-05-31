@@ -5,9 +5,11 @@ athenareader:
     pagesize: 2
     # options are default, StyleBold, StyleColoredBright, StyleColoredDark, StyleColoredBlackOnBlueWhite, StyleColoredBlackOnCyanWhite, StyleColoredBlackOnGreenWhite
     style: StyleColoredBright
+    rowonly: false
+    moneywise: true
 
   input:
     bucket: "s3://henrywutest/"
+    region: "us-east-1"
     database: sampledb
-    rowonly: false
-    moneywise: true
+    admin: false

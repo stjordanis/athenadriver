@@ -110,7 +110,7 @@ func ColsRowsToCSV(rows *sql.Rows) string {
 	return s + r
 }
 
-func PrettyPrintSQLRows(rows *sql.Rows) {
+func PrettyPrintSQLRows(rows *sql.Rows, style string) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	if rows == nil {
@@ -131,12 +131,14 @@ func PrettyPrintSQLRows(rows *sql.Rows) {
 		}
 		t.AppendRow(s)
 	}
-	t.SetStyle(table.StyleColoredDark)
+	if style != "" {
+		t.SetStyle(table.StyleColoredDark)
+	}
 	t.Render()
 	//t.RenderMarkdown()
 }
 
-func PrettyPrintSQLColsRows(rows *sql.Rows) {
+func PrettyPrintSQLColsRows(rows *sql.Rows, style string) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	if rows == nil {
@@ -164,7 +166,9 @@ func PrettyPrintSQLColsRows(rows *sql.Rows) {
 		}
 		t.AppendRow(s)
 	}
-	t.SetStyle(table.StyleColoredDark)
+	if style != "" {
+		t.SetStyle(table.StyleColoredDark)
+	}
 	t.Render()
 	//t.RenderMarkdown()
 }

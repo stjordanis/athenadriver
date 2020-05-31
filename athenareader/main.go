@@ -21,32 +21,30 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"flag"
 	"fmt"
+	"github.com/uber/athenadriver/athenareader/configfx"
+	"github.com/uber/athenadriver/athenareader/queryfx"
 	secret "github.com/uber/athenadriver/examples/constants"
-	drv "github.com/uber/athenadriver/go"
-	"io/ioutil"
-	"log"
+	"go.uber.org/fx"
 	"os"
 )
 
 var commandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-
+var bucket = flag.String("b", secret.OutputBucket, "Athena resultset output bucket")
+var database = flag.String("d", "default", "The database you want to query")
+var query = flag.String("q", "select 1", "The SQL query string or a file containing SQL string")
+var rowOnly = flag.Bool("r", false, "Display rows only, don't show the first row as columninfo")
+var moneyWise = flag.Bool("m", false, "Enable moneywise mode to display the query cost as the first line of the output")
+var versionFlag = flag.Bool("v", false, "Print the current version and exit")
+var admin = flag.Bool("a", false, "Enable admin mode, so database write(create/drop) is allowed at athenadriver level")
 func printVersion() {
 	println("Current build version: v1.1.6")
 }
 
 // main will query Athena and print all columns and rows information in csv format
 func main() {
-	var bucket = flag.String("b", secret.OutputBucket, "Athena resultset output bucket")
-	var database = flag.String("d", "default", "The database you want to query")
-	var query = flag.String("q", "select 1", "The SQL query string or a file containing SQL string")
-	var rowOnly = flag.Bool("r", false, "Display rows only, don't show the first row as columninfo")
-	var moneyWise = flag.Bool("m", false, "Enable moneywise mode to display the query cost as the first line of the output")
-	var versionFlag = flag.Bool("v", false, "Print the current version and exit")
-	var admin = flag.Bool("a", false, "Enable admin mode, so database write(create/drop) is allowed at athenadriver level")
-
 	flag.Usage = func() {
 		preBody := "NAME\n\tathenareader - read athena data from command line\n\n"
 		desc := "\nEXAMPLES\n\n" +
@@ -85,43 +83,17 @@ func main() {
 	}
 	// 1. Set AWS Credential in Driver Config.
 	os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
-	conf, err := drv.NewDefaultConfig(*bucket, secret.Region, secret.AccessID, secret.SecretAccessKey)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	if *moneyWise {
-		conf.SetMoneyWise(true)
-	}
-	conf.SetDB(*database)
-	if !*admin {
-		conf.SetReadOnly(true)
-	}
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	// 2. Open Connection.
-	dsn := conf.Stringify()
-	db, _ := sql.Open(drv.DriverName, dsn)
-	// 3. Query and print results
-	sqlString := *query
-	if _, err := os.Stat(*query); err == nil {
-		b, err := ioutil.ReadFile(*query)
-		if err != nil {
-			fmt.Print(err)
-		}
-		sqlString = string(b) // convert content to a 'string'
-	}
-	rows, err := db.Query(sqlString)
-	if err != nil {
-		println(err.Error())
-		return
-	}
-	defer rows.Close()
-	if *rowOnly {
-		drv.PrettyPrintSQLRows(rows)
-		return
-	}
-	drv.PrettyPrintSQLColsRows(rows)
+	println(bucket, database, query, rowOnly, moneyWise, versionFlag, admin)
+	app := fx.New(opts())
+	ctx := context.Background()
+	app.Start(ctx)
+	defer app.Stop(ctx)
+}
+
+func opts() fx.Option {
+	return fx.Options(
+		fx.Provide(func() string { return *query }),
+		configfx.Module,
+		queryfx.Module,
+	)
 }
