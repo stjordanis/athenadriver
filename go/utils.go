@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/xwb1989/sqlparser"
 	"math"
 	"math/rand"
@@ -107,6 +108,65 @@ func ColsRowsToCSV(rows *sql.Rows) string {
 	s := ColsToCSV(rows)
 	r := RowsToCSV(rows)
 	return s + r
+}
+
+func PrettyPrintSQLRows(rows *sql.Rows) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	if rows == nil {
+		return
+	}
+	columns, _ := rows.Columns()
+	for rows.Next() {
+		rawResult := make([][]byte, len(columns))
+		row := make([]interface{}, len(columns))
+		for i := range rawResult {
+			row[i] = &rawResult[i] // pointers to each string in the interface slice
+		}
+		// We don't consider malformed rows
+		_ = rows.Scan(row...)
+		s := make(table.Row, len(columns))
+		for i, cell := range rawResult {
+			s[i] = string(cell)
+		}
+		t.AppendRow(s)
+	}
+	t.SetStyle(table.StyleColoredDark)
+	t.Render()
+	//t.RenderMarkdown()
+}
+
+func PrettyPrintSQLColsRows(rows *sql.Rows) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	if rows == nil {
+		return
+	}
+	columns, _ := rows.Columns()
+	if columns != nil && len(columns) > 0 {
+		myrow := make(table.Row, len(columns))
+		for i, c := range columns {
+			myrow[i] = c
+		}
+		t.AppendHeader(myrow)
+	}
+	for rows.Next() {
+		rawResult := make([][]byte, len(columns))
+		row := make([]interface{}, len(columns))
+		for i := range rawResult {
+			row[i] = &rawResult[i] // pointers to each string in the interface slice
+		}
+		// We don't consider malformed rows
+		_ = rows.Scan(row...)
+		s := make(table.Row, len(columns))
+		for i, cell := range rawResult {
+			s[i] = string(cell)
+		}
+		t.AppendRow(s)
+	}
+	t.SetStyle(table.StyleColoredDark)
+	t.Render()
+	//t.RenderMarkdown()
 }
 
 // colInFirstPage is to check if this is a SELECT or VALUES statement.

@@ -120,8 +120,8 @@ func main() {
 	}
 	defer rows.Close()
 	if *rowOnly {
-		println(drv.RowsToCSV(rows))
+		drv.PrettyPrintSQLRows(rows)
 		return
 	}
-	println(drv.ColsRowsToCSV(rows))
+	drv.PrettyPrintSQLColsRows(rows)
 }

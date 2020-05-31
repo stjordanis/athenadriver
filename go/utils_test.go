@@ -74,6 +74,24 @@ func TestColsRowsToCSV(t *testing.T) {
 	assert.Equal(t, expected, "one,two,three\n1,2,3\n")
 }
 
+func TestPrettyPrintSQLRows(t *testing.T) {
+	sqlRows := sqlmock.NewRows([]string{"one", "two", "three"})
+	sqlRows.AddRow("1", "2", "3")
+	sqlRows.AddRow("a", "b", "c")
+	sqlRows.AddRow("hello", "world", "athenadriver")
+	rows := mockRowsToSQLRows(sqlRows)
+	PrettyPrintSQLRows(rows)
+}
+
+func TestPrettyPrintSQLColsRows(t *testing.T) {
+	sqlRows := sqlmock.NewRows([]string{"one", "two", "three"})
+	sqlRows.AddRow("1", "2", "3")
+	sqlRows.AddRow("a", "b", "c")
+	sqlRows.AddRow("hello", "world", "athenadriver")
+	rows := mockRowsToSQLRows(sqlRows)
+	PrettyPrintSQLColsRows(rows)
+}
+
 func TestIsSelectStatement(t *testing.T) {
 	assert.True(t, colInFirstPage("SELECT"))
 	assert.True(t, colInFirstPage(" SELECT"))

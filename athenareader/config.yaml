@@ -1,0 +1,13 @@
+athenareader:
+  output:
+    # options are default, markdown, csv, html
+    render: markdown
+    pagesize: 2
+    # options are default, StyleBold, StyleColoredBright, StyleColoredDark, StyleColoredBlackOnBlueWhite, StyleColoredBlackOnCyanWhite, StyleColoredBlackOnGreenWhite
+    style: StyleColoredBright
+
+  input:
+    bucket: "s3://henrywutest/"
+    database: sampledb
+    rowonly: false
+    moneywise: true
